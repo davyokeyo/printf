@@ -1,86 +1,92 @@
-#include <stdarg.h>
 #include "main.h"
-#include <stddef.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 /**
- * get_op - select function for conversion char
- * @c: char to check
- * Return: pointer to function
+ * printIdentifiers - prints special characters
+ * @next: character after the %
+ * @arg: argument for the indentifier
+ * Return: the number of characters printed
+ * (excluding the null byte used to end output to strings)
  */
 
-int (*get_op(const char c))(va_list)
+int printIdentifiers(char next, va_list arg)
 {
-	int i = 0;
+	int functsIndex;
 
-	flags_p fp[] = {
+	identifierStruct functs[] = {
 		{"c", print_char},
 		{"s", print_str},
-		{"i", print_nbr},
-		{"d", print_nbr},
-		{"b", print_binary},
-		{"o", print_octal},
-		{"x", print_hexa_lower},
-		{"X", print_hexa_upper},
+		{"d", print_int},
+		{"i", print_int},
 		{"u", print_unsigned},
-		{"S", print_str_unprintable},
-		{"r", print_str_reverse},
-		{"p", print_ptr},
-		{"R", print_rot13},
-		{"%", print_percent}
+		{"b", print_unsignedToBinary},
+		{"o", print_oct},
+		{"x", print_hex},
+		{"X", print_HEX},
+		{"S", print_STR},
+		{NULL, NULL}
 	};
-	while (i < 14)
+
+	for (functsIndex = 0; functs[functsIndex].indentifier != NULL; functsIndex++)
 	{
-		if (c == fp[i].c[0])
-		{
-			return (fp[i].f);
-		}
-		i++;
+		if (functs[functsIndex].indentifier[0] == next)
+			return (functs[functsIndex].printer(arg));
 	}
-	return (NULL);
+	return (0);
 }
 
 /**
- * _printf - Reproduce behavior of printf function
- * @format: format string
- * Return: value of printed chars
+ * _printf - mimic printf from stdio
+ * Description: produces output according to a format
+ * write output to stdout, the standard output stream
+ * @format: character string composed of zero or more directives
+ *
+ * Return: the number of characters printed
+ * (excluding the null byte used to end output to strings)
+ * return -1 for incomplete identifier error
  */
 
 int _printf(const char *format, ...)
 {
-	va_list ap;
-	int sum = 0, i = 0;
-	int (*func)();
+	unsigned int i;
+	int identifierPrinted = 0, charPrinted = 0;
+	va_list arg;
 
-	if (!format || (format[0] == '%' && format[1] == '\0'))
+	va_start(arg, format);
+	if (format == NULL)
 		return (-1);
-	va_start(ap, format);
 
-	while (format[i])
+	for (i = 0; format[i] != '\0'; i++)
 	{
-		if (format[i] == '%')
-		{
-			if (format[i + 1] != '\0')
-				func = get_op(format[i + 1]);
-			if (func == NULL)
-			{
-				_putchar(format[i]);
-				sum++;
-				i++;
-			}
-			else
-			{
-				sum += func(ap);
-				i += 2;
-				continue;
-			}
-		}
-		else
+		if (format[i] != '%')
 		{
 			_putchar(format[i]);
-			sum++;
+			charPrinted++;
+			continue;
+		}
+		if (format[i + 1] == '%')
+		{
+			_putchar('%');
+			charPrinted++;
 			i++;
+			continue;
+		}
+		if (format[i + 1] == '\0')
+			return (-1);
+
+		identifierPrinted = printIdentifiers(format[i + 1], arg);
+		if (identifierPrinted == -1 || identifierPrinted != 0)
+			i++;
+		if (identifierPrinted > 0)
+			charPrinted += identifierPrinted;
+
+		if (identifierPrinted == 0)
+		{
+			_putchar('%');
+			charPrinted++;
 		}
 	}
-	va_end(ap);
-	return (sum);
+	va_end(arg);
+	return (charPrinted);
 }
